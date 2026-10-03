@@ -11,6 +11,14 @@ export interface ITaskRepository {
   update(id: string, dto: UpdateTaskRequest): Promise<Task | null>;
   delete(id: string): Promise<boolean>;
 }
+=======
+function taskRepository(): TaskRepository{
+    return{
+        findAll() {
+            
+        },
+        findById() {
+
 
 export class TaskRepository implements ITaskRepository {
   private readonly filePath: string;
