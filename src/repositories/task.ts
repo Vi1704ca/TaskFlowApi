@@ -4,7 +4,7 @@ import type { Task } from '../domain/task/entity.js'
 function taskRepository(): TaskRepository{
     return{
         findAll() {
-            if()
+            
         },
         findById() {
 
