@@ -7,53 +7,6 @@
   </p>
 </nav>
 
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    color: #1f2937;
-    background: #f9fafb;
-  }
-  .center {
-    text-align: center;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 16px 0;
-    font-size: 15px;
-    background: #fff;
-    border: 1px solid #d0d7de;
-  }
-  th, td {
-    border: 1px solid #d0d7de;
-    padding: 10px 12px;
-    text-align: left;
-    vertical-align: top;
-  }
-  th {
-    background: #f6f8fa;
-    font-weight: 700;
-  }
-  pre {
-    background: #f6f8fa;
-    border: 1px solid #d0d7de;
-    border-radius: 8px;
-    padding: 12px;
-    overflow-x: auto;
-  }
-  code {
-    font-family: Consolas, Monaco, monospace;
-  }
-  img {
-    width: 100%;
-    max-width: 900px;
-    border-radius: 12px;
-    margin: 12px 0;
-    display: block;
-  }
-</style>
-
 <hr>
 
 <h2 class="center">⚡ Команди для запуску та перевірки</h2>
