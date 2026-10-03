@@ -1,16 +1,16 @@
-import { Router } from 'express';
-import { TaskHandler } from '../handlers/task.js';
-import { TaskService } from '../../services/task.service.js';
+import { Router } from "express";
+import { createTaskHandler } from "../handlers/task.js";
+import type { TaskService } from "../../services/task/task.js";
 
-const taskRouter = Router();
+export function createTaskRouter(taskService: TaskService) {
+  const router = Router();
+  const taskHandler = createTaskHandler(taskService);
 
-const taskService = new TaskService();
-const taskHandler = new TaskHandler(taskService);
+  router.get("/tasks", taskHandler.getAll);
+  router.post("/tasks", taskHandler.create);
+  router.get("/tasks/:id", taskHandler.getById);
+  router.patch("/tasks/:id", taskHandler.update);
+  router.delete("/tasks/:id", taskHandler.delete);
 
-taskRouter.get('/', taskHandler.getAll);
-taskRouter.post('/', taskHandler.create);
-taskRouter.get('/:id', taskHandler.getById);
-taskRouter.patch('/:id', taskHandler.update);
-taskRouter.delete('/:id', taskHandler.delete);
-
-export { taskRouter };
+  return router;
+}

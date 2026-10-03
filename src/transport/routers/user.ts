@@ -1,14 +1,14 @@
-import { Router } from 'express';
-import { UserHandler } from '../handlers/user.js';
-import { UserService } from '../../services/user.service.js';
+import { Router } from "express";
+import { createUserHandler } from "../handlers/user.js";
+import type { UserService } from "../../services/user/user.js";
 
-const userRouter = Router();
+export function createUserRouter(userService: UserService) {
+  const router = Router();
+  const userHandler = createUserHandler(userService);
 
-const userService = new UserService();
-const userHandler = new UserHandler(userService);
+  router.post("/auth/register", userHandler.register);
+  router.post("/auth/login", userHandler.login);
+  router.get("/users/:id", userHandler.getById);
 
-userRouter.post('/auth/register', userHandler.register);
-userRouter.post('/auth/login', userHandler.login);
-userRouter.get('/users/:id', userHandler.getById);
-
-export { userRouter };
+  return router;
+}

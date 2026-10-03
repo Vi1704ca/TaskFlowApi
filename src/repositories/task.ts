@@ -1,123 +1,80 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import * as crypto from 'node:crypto';
-import type { Task } from '../domain/task/entity.js';
-import type { CreateTaskRequest, UpdateTaskRequest } from '../services/task/tasks.types.js';
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import path from "node:path";
+import type { Task, TaskPriority, TaskStatus } from "../domain/task/entity.js";
+import type { TaskRepository } from "../domain/task/repository.js";
 
-export interface ITaskRepository {
-  findAll(): Promise<Task[]>;
-  findById(id: string): Promise<Task | null>;
-  create(dto: CreateTaskRequest): Promise<Task>;
-  update(id: string, dto: UpdateTaskRequest): Promise<Task | null>;
-  delete(id: string): Promise<boolean>;
+const filePath = path.resolve(process.cwd(), "data", "tasks.json");
+
+async function readTasks(): Promise<Task[]> {
+  try {
+    const content = await readFile(filePath, "utf-8");
+    if (!content.trim()) return [];
+    const tasks = JSON.parse(content) as Array<Task & { createdAt: string; updatedAt: string }>;
+    return tasks.map((task) => ({
+      ...task,
+      createdAt: new Date(task.createdAt),
+      updatedAt: new Date(task.updatedAt),
+    }));
+  } catch {
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, "[]", "utf-8");
+    return [];
+  }
 }
-=======
-function taskRepository(): TaskRepository{
-    return{
-        findAll() {
-            
-        },
-        findById() {
 
+async function writeTasks(tasks: Task[]): Promise<void> {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, JSON.stringify(tasks, null, 2), "utf-8");
+}
 
-export class TaskRepository implements ITaskRepository {
-  private readonly filePath: string;
+export function createTaskRepository(): TaskRepository {
+  return {
+    async findAll(filters) {
+      const tasks = await readTasks();
+      return tasks.filter((task) => {
+        if (filters?.userId !== undefined && task.userId !== filters.userId) return false;
+        if (filters?.status !== undefined && task.status !== filters.status) return false;
+        if (filters?.priority !== undefined && task.priority !== filters.priority) return false;
+        return true;
+      });
+    },
 
-  constructor(filePath?: string) {
-    this.filePath = filePath || path.join(process.cwd(), 'data', 'tasks.json');
-  }
+    async findById(id: string) {
+      const tasks = await readTasks();
+      return tasks.find((task) => task.id === id) ?? null;
+    },
 
-  private async readData(): Promise<Task[]> {
-    try {
-      const content = await fs.readFile(this.filePath, 'utf-8');
-      if (!content.trim()) {
-        return [];
-      }
-      return JSON.parse(content) as Task[];
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        await this.ensureFileExists();
-        return [];
-      }
-      throw error;
-    }
-  }
+    async create(task: Task) {
+      const tasks = await readTasks();
+      tasks.push(task);
+      await writeTasks(tasks);
+      return task;
+    },
 
-  private async writeData(tasks: Task[]): Promise<void> {
-    const dir = path.dirname(this.filePath);
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(tasks, null, 2), 'utf-8');
-  }
+    async update(id: string, updates: Partial<Omit<Task, "id" | "createdAt">>) {
+      const tasks = await readTasks();
+      const index = tasks.findIndex((task) => task.id === id);
+      if (index === -1) return null;
 
-  private async ensureFileExists(): Promise<void> {
-    const dir = path.dirname(this.filePath);
-    await fs.mkdir(dir, { recursive: true });
-    try {
-      await fs.access(this.filePath);
-    } catch {
-      await fs.writeFile(this.filePath, '[]', 'utf-8');
-    }
-  }
+      const updatedTask = {
+        ...tasks[index],
+        ...updates,
+        updatedAt: new Date(),
+      } as Task;
 
-  async findAll(): Promise<Task[]> {
-    return this.readData();
-  }
+      tasks[index] = updatedTask;
+      await writeTasks(tasks);
+      return updatedTask;
+    },
 
-  async findById(id: string): Promise<Task | null> {
-    const tasks = await this.readData();
-    const task = tasks.find((t) => t.id === id);
-    return task || null;
-  }
+    async delete(id: string) {
+      const tasks = await readTasks();
+      const index = tasks.findIndex((task) => task.id === id);
+      if (index === -1) return false;
 
-  async create(dto: CreateTaskRequest): Promise<Task> {
-    const tasks = await this.readData();
-    const now = new Date().toISOString();
-
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      userId: dto.userId,
-      title: dto.title,
-      description: dto.description,
-      status: dto.status,
-      priority: dto.priority,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    tasks.push(newTask);
-    await this.writeData(tasks);
-    return newTask;
-  }
-
-  async update(id: string, dto: UpdateTaskRequest): Promise<Task | null> {
-    const tasks = await this.readData();
-    const index = tasks.findIndex((t) => t.id === id);
-
-    if (index === -1) {
-      return null;
-    }
-
-    const updatedTask: Task = {
-      ...tasks[index],
-      ...dto,
-      updatedAt: new Date().toISOString(),
-    };
-
-    tasks[index] = updatedTask;
-    await this.writeData(tasks);
-    return updatedTask;
-  }
-
-  async delete(id: string): Promise<boolean> {
-    const tasks = await this.readData();
-    const index = tasks.findIndex((t) => t.id === id);
-
-    if (index === -1) {
-      return false;
-    }
-
-    tasks.splice(index, 1);
-    await this.writeData(tasks);
-    return true;
-  }
+      tasks.splice(index, 1);
+      await writeTasks(tasks);
+      return true;
+    },
+  };
 }

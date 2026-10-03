@@ -1,16 +1,16 @@
-import type { TaskStatus, TaskPriority } from '../domain/task/entity.js'
+import type { TaskPriority, TaskStatus } from "../../domain/task/entity.js";
 
 export interface CreateTaskRequest {
-    userId: number;
-    title: string;
-    description: string;
-    status: TaskStatus;
-    priority: TaskPriority;
+  userId: number;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
 }
 
 export interface UpdateTaskRequest {
-    title?: string;
-    description?: string;
-    status?: TaskStatus;
-    priority?: TaskPriority;
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
 }

@@ -1,55 +1,56 @@
-import type { Request, Response, NextFunction } from 'express';
-import { UserService } from '../../services/user.service.js';
-import { RegisterUserDto } from '../dto/user/register.dto.js';
-import { LoginUserDto } from '../dto/user/login.dto.js';
-import { validateOrReject } from 'class-validator';
-import { plainToInstance } from 'class-transformer';
+import type { Request, Response } from "express";
+import type { UserService } from "../../services/user/user.js";
 
-export class UserHandler {
-  constructor(private readonly userService: UserService) {}
+export function createUserHandler(userService: UserService) {
+  return {
+    async register(req: Request, res: Response) {
+      try {
+        const { name, email, password } = req.body ?? {};
 
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const dto = plainToInstance(RegisterUserDto, req.body);
-      await validateOrReject(dto);
+        if (!name || !email || !password) {
+          res.status(400).json({ message: "name, email and password are required" });
+          return;
+        }
 
-      const user = await this.userService.register(dto);
-      
-      // Никогда не отправляем пароль! Формируем безопасный ответ явным маппингом.
-      const safeUser = { id: user.id, email: user.email, name: user.name };
-      res.status(201).json(safeUser);
-    } catch (error) {
-      res.status(400).json({ message: 'Registration failed', errors: error });
-    }
-  };
+        const user = await userService.register({ name, email, password });
+        res.status(201).json(user);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Registration failed";
+        res.status(409).json({ message });
+      }
+    },
 
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const dto = plainToInstance(LoginUserDto, req.body);
-      await validateOrReject(dto);
+    async login(req: Request, res: Response) {
+      try {
+        const { email, password } = req.body ?? {};
 
-      const { user, token } = await this.userService.login(dto);
+        if (!email || !password) {
+          res.status(400).json({ message: "email and password are required" });
+          return;
+        }
 
-      const safeUser = { id: user.id, email: user.email, name: user.name };
-      res.status(200).json({ user: safeUser, token });
-    } catch (error) {
-      res.status(401).json({ message: 'Invalid credentials' });
-    }
-  };
+        const user = await userService.login({ email, password });
+        res.status(200).json(user);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Login failed";
+        res.status(401).json({ message });
+      }
+    },
 
-  getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { id } = req.params;
-      const user = await this.userService.getById(id);
-
-      if (!user) {
-        res.status(404).json({ message: 'User not found' });
+    async getById(req: Request, res: Response) {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) {
+        res.status(400).json({ message: "Invalid user id" });
         return;
       }
 
-      res.status(200).json({ id: user.id, email: user.email, name: user.name });
-    } catch (error) {
-      next(error);
-    }
+      const user = await userService.getById(id);
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      res.status(200).json(user);
+    },
   };
 }

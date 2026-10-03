@@ -1,9 +1,9 @@
-import { type Task } from './entity.js'
+import type { Task, TaskPriority, TaskStatus } from './entity.js';
 
-export interface TaskRepository{
-    findAll(): Promise<Task[]>;
-    findById(id:number): Promise<Task | null>;
-    create(task:Task): Promise<Task>;
-    update(task:Task): Promise<Task>;
-    delete(task:Task): Promise<Task>
+export interface TaskRepository {
+  findAll(filters?: { userId?: number; status?: TaskStatus; priority?: TaskPriority }): Promise<Task[]>;
+  findById(id: string): Promise<Task | null>;
+  create(task: Task): Promise<Task>;
+  update(id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>): Promise<Task | null>;
+  delete(id: string): Promise<boolean>;
 }

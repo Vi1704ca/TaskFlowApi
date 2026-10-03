@@ -1,55 +1,48 @@
-import type { User } from "../domain/user/entity.ts";
-import type { UserRepository} from "../domain/user/repository.ts";
-import { fileURLToPath } from "node:url";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import fs from "node:fs/promises";
+import type { User } from "../domain/user/entity.js";
+import type { UserRepository } from "../domain/user/repository.js";
 
+const filePath = path.resolve(process.cwd(), "data", "users.json");
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const filePath = path.resolve(__dirname, "../data/user.json");
-
-interface UserJson extends Omit<User, "createdAt"> {
-    createdAt: string;
+async function readUsers(): Promise<User[]> {
+  try {
+    const content = await readFile(filePath, "utf-8");
+    if (!content.trim()) return [];
+    const users = JSON.parse(content) as Array<User & { createdAt: string }>;
+    return users.map((user) => ({
+      ...user,
+      createdAt: new Date(user.createdAt),
+    }));
+  } catch {
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, "[]", "utf-8");
+    return [];
+  }
 }
 
-async function readUsersFile(): Promise<User[]> {
-    try {
-        const data = await fs.readFile(filePath, "utf-8");
-        if (!data.trim()) return [];
-        
-        const rawUsers: UserJson[] = JSON.parse(data);
-        return rawUsers.map(u => ({
-            ...u,
-            createdAt: new Date(u.createdAt)
-        }));
-    } catch (error) {
-        return [];
-    }
-}
-
-async function writeUsersFile(users: User[]): Promise<void> {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, JSON.stringify(users, null, 2), "utf-8");
+async function writeUsers(users: User[]): Promise<void> {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, JSON.stringify(users, null, 2), "utf-8");
 }
 
 export function createUserRepository(): UserRepository {
-    return {
-        async findById(id) {
-            const users = await readUsersFile();
-            return users.find((user) => user.id === id) || null;
-        },
+  return {
+    async findById(id: number) {
+      const users = await readUsers();
+      return users.find((user) => user.id === id) ?? null;
+    },
 
-        async findByEmail(email) {
-            const users = await readUsersFile();
-            return users.find((user) => user.email === email) || null;
-        },
+    async findByEmail(email: string) {
+      const users = await readUsers();
+      return users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ?? null;
+    },
 
-        async createUser(user) {
-            const users = await readUsersFile();
-            users.push(user);
-            await writeUsersFile(users);
-            return user;
-        }
-    };
+    async createUser(user: User) {
+      const users = await readUsers();
+      users.push(user);
+      await writeUsers(users);
+      return user;
+    },
+  };
 }
